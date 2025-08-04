@@ -44,4 +44,11 @@ public class StringUtils {
     public static String safeToString(@Nullable Object obj) {
         return obj != null ? obj.toString() : "N/A";
     }
+
+    public static String safeUpperCase(@Nullable String input) {
+        if (input == null) {
+            return "NULL_INPUT";
+        }
+        return input.toUpperCase(Locale.ROOT);
+    }
 }
