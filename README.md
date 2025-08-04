@@ -1,0 +1,1 @@
+Sample project showing a nullness error visible in IntelliJ or when running `./mvnw clean package`.
