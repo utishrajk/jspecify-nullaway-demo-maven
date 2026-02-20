@@ -41,6 +41,20 @@ pipeline {
             }
         }
 
+        stage('Publish to Nexus') {
+            steps {
+                script {
+                    def jarName = "jspecify-nullway-demo-0.0.1-SNAPSHOT.jar"
+                    def nexusUrl = "http://nexus-server:8081/repository/maven-snapshots/"
+                    // Using default admin credentials for demonstration. 
+                    // In production, use Jenkins credentials store!
+                    withCredentials([usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PWD')]) {
+                        sh "curl -v -u ${NEXUS_USER}:${NEXUS_PWD} --upload-file target/${jarName} ${nexusUrl}com/example/jspecify-nullway-demo/0.0.1-SNAPSHOT/${jarName}"
+                    }
+                }
+            }
+        }
+
         stage('Archive Artifacts') {
             steps {
                 archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
