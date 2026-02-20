@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    options {
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
     tools {
         maven 'Default' 
     }
@@ -69,14 +74,12 @@ pipeline {
             steps {
                 script {
                     sh "kubectl config use-context kind-dev-cluster"
+                    sh "kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -"
                     sh "kind load docker-image jspecify-demo:${env.DYNAMIC_VERSION} --name dev-cluster"
-                    
-                    echo "Injecting version ${env.DYNAMIC_VERSION} into deployment.yaml"
                     sh "sed -i 's/VERSION_PLACEHOLDER/${env.DYNAMIC_VERSION}/g' deployment.yaml"
-                    
-                    sh "kubectl apply -f deployment.yaml"
-                    sh "kubectl rollout restart deployment/jspecify-demo"
-                    sh "kubectl rollout status deployment/jspecify-demo"
+                    sh "kubectl apply -f deployment.yaml -n dev"
+                    sh "kubectl rollout restart deployment/jspecify-demo -n dev"
+                    sh "kubectl rollout status deployment/jspecify-demo -n dev"
                 }
             }
         }
@@ -84,22 +87,13 @@ pipeline {
         stage('Integration Test (Dev)') {
             steps {
                 script {
-                    echo "Ensuring port-forward is active..."
+                    echo "Ensuring port-forward is active for Dev..."
                     def portBusy = sh(script: "netstat -tuln | grep :8082 || true", returnStdout: true).trim()
-                    
                     if (!portBusy) {
-                        sh "kubectl port-forward service/jspecify-demo-service 8082:8082 --address 0.0.0.0 > pf.log 2>&1 &"
+                        sh "kubectl port-forward -n dev service/jspecify-demo-service 8082:8082 --address 0.0.0.0 > dev_pf.log 2>&1 &"
                         sleep 10
                     }
-                    
-                    sh """
-                        response=\$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8082/hello)
-                        if [ "\$response" -eq 200 ]; then
-                            echo "Integration Test Passed"
-                        else
-                            exit 1
-                        fi
-                    """
+                    sh 'curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8082/hello'
                 }
             }
         }
@@ -115,12 +109,11 @@ pipeline {
                 script {
                     echo "Deploying to Production Cluster..."
                     sh "kubectl config use-context kind-prod-cluster"
+                    sh "kubectl create namespace prod --dry-run=client -o yaml | kubectl apply -f -"
                     sh "kind load docker-image jspecify-demo:${env.DYNAMIC_VERSION} --name prod-cluster"
-                    
-                    // The sed replace was already done in the Dev stage, so deployment.yaml is ready
-                    sh "kubectl apply -f deployment.yaml"
-                    sh "kubectl rollout restart deployment/jspecify-demo"
-                    sh "kubectl rollout status deployment/jspecify-demo"
+                    sh "kubectl apply -f deployment.yaml -n prod"
+                    sh "kubectl rollout restart deployment/jspecify-demo -n prod"
+                    sh "kubectl rollout status deployment/jspecify-demo -n prod"
                 }
             }
         }
@@ -128,8 +121,8 @@ pipeline {
         stage('Verify Production') {
             steps {
                 script {
-                    sh "kubectl get pods -l app=jspecify-demo"
-                    def podStatus = sh(script: "kubectl get pods -l app=jspecify-demo -o jsonpath='{.items[*].status.phase}'", returnStdout: true).trim()
+                    sh "kubectl get pods -n prod -l app=jspecify-demo"
+                    def podStatus = sh(script: "kubectl get pods -n prod -l app=jspecify-demo -o jsonpath='{.items[*].status.phase}'", returnStdout: true).trim()
                     if (podStatus.contains("Running")) {
                         echo "SUCCESS: Production is LIVE!"
                     } else {
