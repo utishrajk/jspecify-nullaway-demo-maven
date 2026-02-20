@@ -60,7 +60,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh "docker build -t jspecify-demo:latest ."
+                    sh "docker build -t jspecify-demo:${env.DYNAMIC_VERSION} -t jspecify-demo:latest ."
                 }
             }
         }
@@ -68,16 +68,10 @@ pipeline {
         stage('Deploy to Dev Cluster') {
             steps {
                 script {
-                    echo "Loading image to Kind cluster..."
-                    sh "kind load docker-image jspecify-demo:latest --name dev-cluster"
-                    
-                    echo "Applying Kubernetes manifests..."
+                    sh "kubectl config use-context kind-dev-cluster"
+                    sh "kind load docker-image jspecify-demo:${env.DYNAMIC_VERSION} --name dev-cluster"
                     sh "kubectl apply -f deployment.yaml"
-                    
-                    echo "Forcing pod restart to pick up new image..."
                     sh "kubectl rollout restart deployment/jspecify-demo"
-                    
-                    echo "Waiting for rollout to complete..."
                     sh "kubectl rollout status deployment/jspecify-demo"
                 }
             }
@@ -86,19 +80,13 @@ pipeline {
         stage('Integration Test (Dev)') {
             steps {
                 script {
-                    echo "Starting/Verifying port-forward..."
-                    // We start it but don't kill it so it stays persistent for the user
                     sh "kubectl port-forward service/jspecify-demo-service 8082:8082 --address 0.0.0.0 > pf.log 2>&1 &"
                     sleep 5
-                    
-                    echo "Running integration tests against http://0.0.0.0:8082/hello..."
                     sh """
                         response=\$(curl -s -o /dev/null -w "%{http_code}" http://0.0.0.0:8082/hello)
-                        echo "Response code: \$response"
                         if [ "\$response" -eq 200 ]; then
                             echo "Integration Test Passed"
                         else
-                            echo "Integration Test Failed"
                             exit 1
                         fi
                     """
@@ -108,15 +96,34 @@ pipeline {
 
         stage('Manual Approval') {
             steps {
-                input message: "Does the Dev deployment look good? Promote to Production?", ok: "Deploy to Prod"
+                input message: "Promote version ${env.DYNAMIC_VERSION} to Production?", ok: "Deploy to Prod"
             }
         }
 
         stage('Deploy to Production') {
             steps {
-                echo "Deploying version ${env.DYNAMIC_VERSION} to Production Cluster..."
-                // Logic for second cluster (prod-cluster) goes here
-                sh "echo 'Production deployment logic would run here'"
+                script {
+                    echo "Deploying to Production Cluster..."
+                    sh "kubectl config use-context kind-prod-cluster"
+                    sh "kind load docker-image jspecify-demo:${env.DYNAMIC_VERSION} --name prod-cluster"
+                    sh "kubectl apply -f deployment.yaml"
+                    sh "kubectl rollout restart deployment/jspecify-demo"
+                    sh "kubectl rollout status deployment/jspecify-demo"
+                }
+            }
+        }
+
+        stage('Verify Production') {
+            steps {
+                script {
+                    sh "kubectl get pods -l app=jspecify-demo"
+                    def podStatus = sh(script: "kubectl get pods -l app=jspecify-demo -o jsonpath='{.items[*].status.phase}'", returnStdout: true).trim()
+                    if (podStatus.contains("Running")) {
+                        echo "SUCCESS: Production is LIVE!"
+                    } else {
+                        error "FAIL: Production pods not running."
+                    }
+                }
             }
         }
     }
