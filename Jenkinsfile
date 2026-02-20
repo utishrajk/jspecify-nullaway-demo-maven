@@ -18,7 +18,6 @@ pipeline {
                     def pom = readMavenPom file: 'pom.xml'
                     def baseVersion = pom.version.replace("-SNAPSHOT", "")
                     env.DYNAMIC_VERSION = "${baseVersion}.${env.BUILD_NUMBER}"
-                    echo "Calculated Dynamic Version: ${env.DYNAMIC_VERSION}"
                 }
             }
         }
@@ -50,7 +49,6 @@ pipeline {
             steps {
                 script {
                     def jarName = "jspecify-nullway-demo-${env.DYNAMIC_VERSION}.jar"
-                    // Use maven-releases for numbered versions (1.0.x)
                     def nexusUrl = "http://nexus-server:8081/repository/maven-releases/"
                     withCredentials([usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PWD')]) {
                         sh "curl -v -u ${NEXUS_USER}:${NEXUS_PWD} --upload-file target/${jarName} ${nexusUrl}com/example/jspecify-nullway-demo/${env.DYNAMIC_VERSION}/${jarName}"
@@ -59,16 +57,43 @@ pipeline {
             }
         }
 
-        stage('Archive Artifacts') {
+        stage('Build Docker Image') {
             steps {
-                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                script {
+                    sh "docker build -t jspecify-demo:latest ."
+                }
             }
         }
-    }
 
-    post {
-        always {
-            echo 'Build finished.'
+        stage('Deploy to Dev Cluster') {
+            steps {
+                script {
+                    echo "Loading image to Kind cluster..."
+                    sh "kind load docker-image jspecify-demo:latest --name dev-cluster"
+                    
+                    echo "Applying Kubernetes manifests..."
+                    sh "kubectl apply -f deployment.yaml"
+                    
+                    echo "Waiting for rollout to complete..."
+                    sh "kubectl rollout status deployment/jspecify-demo"
+                }
+            }
+        }
+
+        stage('Verify Pods') {
+            steps {
+                script {
+                    sh "kubectl get pods -l app=jspecify-demo"
+                    def podStatus = sh(script: "kubectl get pods -l app=jspecify-demo -o jsonpath='{.items[*].status.phase}'", returnStdout: true).trim()
+                    echo "Pod Statuses: ${podStatus}"
+                    
+                    if (podStatus.contains("Running")) {
+                        echo "SUCCESS: App is up and running in pods!"
+                    } else {
+                        error "FAIL: Pods are not in Running state."
+                    }
+                }
+            }
         }
     }
 }
