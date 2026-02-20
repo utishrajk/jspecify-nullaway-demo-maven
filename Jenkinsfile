@@ -12,23 +12,32 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Determine Version') {
             steps {
-                echo 'Building Spring Boot application...'
-                // Skip tests in the build stage to handle them separately
-                sh 'mvn clean compile -DskipTests'
+                script {
+                    // Read the base version from pom.xml (e.g., 1.0.0)
+                    def pom = readMavenPom file: 'pom.xml'
+                    def baseVersion = pom.version.replace("-SNAPSHOT", "")
+                    
+                    // Create a unique version: BaseVersion.BuildNumber (e.g., 1.0.0.15)
+                    env.DYNAMIC_VERSION = "${baseVersion}.${env.BUILD_NUMBER}"
+                    echo "Calculated Dynamic Version: ${env.DYNAMIC_VERSION}"
+                }
             }
         }
 
-        stage('Unit Test') {
+        stage('Set Version') {
             steps {
-                echo 'Running unit tests...'
-                // Run only the tests and generate reports
-                sh 'mvn test'
+                sh "mvn versions:set -DnewVersion=${env.DYNAMIC_VERSION}"
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                sh 'mvn clean compile test'
             }
             post {
                 always {
-                    // Record JUnit test results for the Jenkins UI
                     junit '**/target/surefire-reports/*.xml'
                 }
             }
@@ -36,7 +45,6 @@ pipeline {
 
         stage('Package') {
             steps {
-                echo 'Packaging application...'
                 sh 'mvn package -DskipTests'
             }
         }
@@ -44,12 +52,10 @@ pipeline {
         stage('Publish to Nexus') {
             steps {
                 script {
-                    def jarName = "jspecify-nullway-demo-0.0.1-SNAPSHOT.jar"
+                    def jarName = "jspecify-nullway-demo-${env.DYNAMIC_VERSION}.jar"
                     def nexusUrl = "http://nexus-server:8081/repository/maven-snapshots/"
-                    // Using default admin credentials for demonstration. 
-                    // In production, use Jenkins credentials store!
                     withCredentials([usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PWD')]) {
-                        sh "curl -v -u ${NEXUS_USER}:${NEXUS_PWD} --upload-file target/${jarName} ${nexusUrl}com/example/jspecify-nullway-demo/0.0.1-SNAPSHOT/${jarName}"
+                        sh "curl -v -u ${NEXUS_USER}:${NEXUS_PWD} --upload-file target/${jarName} ${nexusUrl}com/example/jspecify-nullway-demo/${env.DYNAMIC_VERSION}/${jarName}"
                     }
                 }
             }
@@ -65,12 +71,6 @@ pipeline {
     post {
         always {
             echo 'Build finished.'
-        }
-        success {
-            echo 'Build Succeeded!'
-        }
-        failure {
-            echo 'Build Failed. Check logs.'
         }
     }
 }
