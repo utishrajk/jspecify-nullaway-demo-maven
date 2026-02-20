@@ -80,13 +80,26 @@ pipeline {
         stage('Integration Test (Dev)') {
             steps {
                 script {
-                    sh "kubectl port-forward service/jspecify-demo-service 8082:8082 --address 0.0.0.0 > pf.log 2>&1 &"
-                    sleep 5
+                    echo "Ensuring port-forward is active..."
+                    // Check if port 8082 is already listening
+                    def portBusy = sh(script: "netstat -tuln | grep :8082 || true", returnStdout: true).trim()
+                    
+                    if (!portBusy) {
+                        echo "Starting new port-forward..."
+                        sh "kubectl port-forward service/jspecify-demo-service 8082:8082 --address 0.0.0.0 > pf.log 2>&1 &"
+                        sleep 10
+                    } else {
+                        echo "Port 8082 is already active, reusing existing tunnel."
+                    }
+                    
+                    echo "Running integration tests against http://127.0.0.1:8082/hello..."
                     sh """
-                        response=\$(curl -s -o /dev/null -w "%{http_code}" http://0.0.0.0:8082/hello)
+                        response=\$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8082/hello)
+                        echo "Response code: \$response"
                         if [ "\$response" -eq 200 ]; then
                             echo "Integration Test Passed"
                         else
+                            echo "Integration Test Failed: Received \$response"
                             exit 1
                         fi
                     """
