@@ -103,22 +103,30 @@ pipeline {
         stage('Integration Test') {
             steps {
                 script {
-                    echo "Running integration tests against the cluster..."
-                    // Wait a few seconds for the app to initialize inside the container
-                    sleep 10
+                    echo "Starting transient port-forward for integration tests..."
+                    // Start port-forward in background and save PID
+                    sh "kubectl port-forward service/jspecify-demo-service 8082:8082 --address 0.0.0.0 > pf.log 2>&1 & echo \$! > pf.pid"
                     
-                    // We use the service name or pod IP to test connectivity internally
-                    // Since we already have a port-forward on 8082 in the background, we can test that
-                    sh """
-                        response=\$(curl -s -o /dev/null -w "%{http_code}" http://0.0.0.0:8082/hello)
-                        echo "Response code: \$response"
-                        if [ "\$response" -eq 200 ]; then
-                            echo "Integration Test Passed: /hello returned 200 OK"
-                        else
-                            echo "Integration Test Failed: Received \$response"
-                            exit 1
-                        fi
-                    """
+                    // Wait for port-forward to initialize
+                    sleep 5
+                    
+                    try {
+                        echo "Running integration tests against http://0.0.0.0:8082/hello..."
+                        sh """
+                            response=\$(curl -s -o /dev/null -w "%{http_code}" http://0.0.0.0:8082/hello)
+                            echo "Response code: \$response"
+                            if [ "\$response" -eq 200 ]; then
+                                echo "Integration Test Passed: /hello returned 200 OK"
+                            else
+                                echo "Integration Test Failed: Received \$response"
+                                cat pf.log
+                                exit 1
+                            fi
+                        """
+                    } finally {
+                        echo "Cleaning up port-forward..."
+                        sh "kill \$(cat pf.pid) || true"
+                    }
                 }
             }
         }
