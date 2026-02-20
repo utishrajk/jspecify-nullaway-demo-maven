@@ -69,6 +69,7 @@ pipeline {
             steps {
                 script {
                     echo "Loading image to Kind cluster..."
+                    // We use the host's kind since we mapped the docker socket
                     sh "kind load docker-image jspecify-demo:latest --name dev-cluster"
                     
                     echo "Applying Kubernetes manifests..."
