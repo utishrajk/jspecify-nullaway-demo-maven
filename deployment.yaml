@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: jspecify-demo
-        image: jspecify-demo:latest
+        image: jspecify-demo:VERSION_PLACEHOLDER
         imagePullPolicy: Never # Forces Kind to use the local image we load
         ports:
         - containerPort: 8083
