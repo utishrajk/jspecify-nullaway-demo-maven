@@ -2,8 +2,6 @@ pipeline {
     agent any
 
     tools {
-        // This must match the name of the Maven installation 
-        // in Jenkins -> Manage Jenkins -> Global Tool Configuration
         maven 'Default' 
     }
 
@@ -14,10 +12,32 @@ pipeline {
             }
         }
 
-        stage('Build & Unit Test') {
+        stage('Build') {
             steps {
                 echo 'Building Spring Boot application...'
-                sh 'mvn clean package'
+                // Skip tests in the build stage to handle them separately
+                sh 'mvn clean compile -DskipTests'
+            }
+        }
+
+        stage('Unit Test') {
+            steps {
+                echo 'Running unit tests...'
+                // Run only the tests and generate reports
+                sh 'mvn test'
+            }
+            post {
+                always {
+                    // Record JUnit test results for the Jenkins UI
+                    junit '**/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Package') {
+            steps {
+                echo 'Packaging application...'
+                sh 'mvn package -DskipTests'
             }
         }
 
@@ -26,9 +46,6 @@ pipeline {
                 archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
         }
-        
-        // We will add the Dev/Prod deployment stages once 
-        // we verify the build works!
     }
 
     post {
