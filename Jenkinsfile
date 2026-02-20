@@ -69,7 +69,6 @@ pipeline {
             steps {
                 script {
                     echo "Loading image to Kind cluster..."
-                    // We use the host's kind since we mapped the docker socket
                     sh "kind load docker-image jspecify-demo:latest --name dev-cluster"
                     
                     echo "Applying Kubernetes manifests..."
@@ -84,50 +83,40 @@ pipeline {
             }
         }
 
-        stage('Verify Pods') {
+        stage('Integration Test (Dev)') {
             steps {
                 script {
-                    sh "kubectl get pods -l app=jspecify-demo"
-                    def podStatus = sh(script: "kubectl get pods -l app=jspecify-demo -o jsonpath='{.items[*].status.phase}'", returnStdout: true).trim()
-                    echo "Pod Statuses: ${podStatus}"
+                    echo "Starting/Verifying port-forward..."
+                    // We start it but don't kill it so it stays persistent for the user
+                    sh "kubectl port-forward service/jspecify-demo-service 8082:8082 --address 0.0.0.0 > pf.log 2>&1 &"
+                    sleep 5
                     
-                    if (podStatus.contains("Running")) {
-                        echo "SUCCESS: App is up and running in pods!"
-                    } else {
-                        error "FAIL: Pods are not in Running state."
-                    }
+                    echo "Running integration tests against http://0.0.0.0:8082/hello..."
+                    sh """
+                        response=\$(curl -s -o /dev/null -w "%{http_code}" http://0.0.0.0:8082/hello)
+                        echo "Response code: \$response"
+                        if [ "\$response" -eq 200 ]; then
+                            echo "Integration Test Passed"
+                        else
+                            echo "Integration Test Failed"
+                            exit 1
+                        fi
+                    """
                 }
             }
         }
 
-        stage('Integration Test') {
+        stage('Manual Approval') {
             steps {
-                script {
-                    echo "Starting transient port-forward for integration tests..."
-                    // Start port-forward in background and save PID
-                    sh "kubectl port-forward service/jspecify-demo-service 8082:8082 --address 0.0.0.0 > pf.log 2>&1 & echo \$! > pf.pid"
-                    
-                    // Wait for port-forward to initialize
-                    sleep 5
-                    
-                    try {
-                        echo "Running integration tests against http://0.0.0.0:8082/hello..."
-                        sh """
-                            response=\$(curl -s -o /dev/null -w "%{http_code}" http://0.0.0.0:8082/hello)
-                            echo "Response code: \$response"
-                            if [ "\$response" -eq 200 ]; then
-                                echo "Integration Test Passed: /hello returned 200 OK"
-                            else
-                                echo "Integration Test Failed: Received \$response"
-                                cat pf.log
-                                exit 1
-                            fi
-                        """
-                    } finally {
-                        echo "Cleaning up port-forward..."
-                        sh "kill \$(cat pf.pid) || true"
-                    }
-                }
+                input message: "Does the Dev deployment look good? Promote to Production?", ok: "Deploy to Prod"
+            }
+        }
+
+        stage('Deploy to Production') {
+            steps {
+                echo "Deploying version ${env.DYNAMIC_VERSION} to Production Cluster..."
+                // Logic for second cluster (prod-cluster) goes here
+                sh "echo 'Production deployment logic would run here'"
             }
         }
     }
