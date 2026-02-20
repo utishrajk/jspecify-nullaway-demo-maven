@@ -99,5 +99,28 @@ pipeline {
                 }
             }
         }
+
+        stage('Integration Test') {
+            steps {
+                script {
+                    echo "Running integration tests against the cluster..."
+                    // Wait a few seconds for the app to initialize inside the container
+                    sleep 10
+                    
+                    // We use the service name or pod IP to test connectivity internally
+                    // Since we already have a port-forward on 8082 in the background, we can test that
+                    sh """
+                        response=\$(curl -s -o /dev/null -w "%{http_code}" http://0.0.0.0:8082/hello)
+                        echo "Response code: \$response"
+                        if [ "\$response" -eq 200 ]; then
+                            echo "Integration Test Passed: /hello returned 200 OK"
+                        else
+                            echo "Integration Test Failed: Received \$response"
+                            exit 1
+                        fi
+                    """
+                }
+            }
+        }
     }
 }
