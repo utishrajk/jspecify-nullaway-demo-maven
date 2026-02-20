@@ -75,6 +75,9 @@ pipeline {
                     echo "Applying Kubernetes manifests..."
                     sh "kubectl apply -f deployment.yaml"
                     
+                    echo "Forcing pod restart to pick up new image..."
+                    sh "kubectl rollout restart deployment/jspecify-demo"
+                    
                     echo "Waiting for rollout to complete..."
                     sh "kubectl rollout status deployment/jspecify-demo"
                 }
