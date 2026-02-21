@@ -83,6 +83,23 @@ This directory contains a complete backup of the DevOps infrastructure state as 
     *   `token.txt`: The specific HEC token used by Fluent Bit.
 *   `setup_hosts.sh`: Script to add local DNS aliases to `/etc/hosts`.
 
+## Service Network Directory
+
+| Service | Friendly URL | Real Internal URL | Description |
+| :--- | :--- | :--- | :--- |
+| **Jenkins** | [http://jenkins.hello.com](http://jenkins.hello.com) | `http://127.0.0.1:8080` | Main CI/CD Dashboard |
+| **Nexus** | [http://nexus.hello.com](http://nexus.hello.com) | `http://127.0.0.1:8081` | Artifact Repository (Releases) |
+| **Splunk UI** | [http://splunk.hello.com](http://splunk.hello.com) | `http://127.0.0.1:8000` | Log Analysis & Visualization |
+| **Splunk HEC** | -- | `https://127.0.0.1:8088` | Log Collector (HEC) |
+| **Portainer** | [http://portainer.hello.com](http://portainer.hello.com) | `http://127.0.0.1:9000` | Docker Container Management |
+| **Dev App** | [http://dev.hello.com](http://dev.hello.com) | `http://192.168.49.2:30265` | JSpecify App in Dev Cluster |
+| **Prod App** | [http://prod.hello.com](http://prod.hello.com) | `http://192.168.58.2:31581` | JSpecify App in Prod Cluster |
+| **Log Proxy** | -- | `http://127.0.0.1:8888` | Socat tunnel to Splunk HEC |
+
+> **Note:** The "Friendly URLs" are managed by the Nginx Reverse Proxy (`devops-proxy`) running on port 80 of your host machine.
+
+---
+
 ## Build & Deployment Lifecycle
 
 ### 1. Application Build (Maven)
