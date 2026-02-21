@@ -73,9 +73,13 @@ pipeline {
         stage('Deploy to Dev Cluster') {
             steps {
                 script {
-                    sh "kubectl config use-context kind-dev-cluster"
+                    sh "kubectl config use-context dev-cluster"
                     sh "kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -"
-                    sh "kind load docker-image jspecify-demo:${env.DYNAMIC_VERSION} --name dev-cluster"
+                    
+                    echo "Loading image to Minikube Dev Cluster..."
+                    // Minikube image load command
+                    sh "minikube image load jspecify-demo:${env.DYNAMIC_VERSION} -p dev-cluster"
+                    
                     sh "sed -i 's/VERSION_PLACEHOLDER/${env.DYNAMIC_VERSION}/g' deployment.yaml"
                     sh "kubectl apply -f deployment.yaml -n dev"
                     sh "kubectl rollout restart deployment/jspecify-demo -n dev"
@@ -87,7 +91,8 @@ pipeline {
         stage('Integration Test (Dev)') {
             steps {
                 script {
-                    echo "Ensuring port-forward is active for Dev..."
+                    echo "Starting port-forward for Dev..."
+                    // Check if port 8082 is already listening
                     def portBusy = sh(script: "netstat -tuln | grep :8082 || true", returnStdout: true).trim()
                     if (!portBusy) {
                         sh "kubectl port-forward -n dev service/jspecify-demo-service 8082:8082 --address 0.0.0.0 > dev_pf.log 2>&1 &"
@@ -107,10 +112,12 @@ pipeline {
         stage('Deploy to Production') {
             steps {
                 script {
-                    echo "Deploying to Production Cluster..."
-                    sh "kubectl config use-context kind-prod-cluster"
+                    echo "Deploying to Minikube Production Cluster..."
+                    sh "kubectl config use-context prod-cluster"
                     sh "kubectl create namespace prod --dry-run=client -o yaml | kubectl apply -f -"
-                    sh "kind load docker-image jspecify-demo:${env.DYNAMIC_VERSION} --name prod-cluster"
+                    
+                    sh "minikube image load jspecify-demo:${env.DYNAMIC_VERSION} -p prod-cluster"
+                    
                     sh "kubectl apply -f deployment.yaml -n prod"
                     sh "kubectl rollout restart deployment/jspecify-demo -n prod"
                     sh "kubectl rollout status deployment/jspecify-demo -n prod"
