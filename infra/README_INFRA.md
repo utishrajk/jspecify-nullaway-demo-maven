@@ -112,6 +112,52 @@ This bypasses the need for a private registry or slow SSH transfers.
 
 ---
 
+## CI/CD Pipeline Sequence (Jenkinsfile)
+
+The Jenkins pipeline automates the entire lifecycle from commit to production. Here is the step-by-step sequence:
+
+### 1. Dynamic Versioning & Incrementing
+- **Mechanism:** The pipeline reads the base version from `pom.xml` (e.g., `1.0`).
+- **Incrementing:** It appends the Jenkins `${BUILD_NUMBER}` to create a unique version: `${baseVersion}.${env.BUILD_NUMBER}` (e.g., `1.0.45`).
+- **Enforcement:** `mvn versions:set -DnewVersion=${env.DYNAMIC_VERSION}` is called to update the project before any build happens.
+
+### 2. Build & Quality Gate (JUnit)
+- **Compilation:** `mvn clean compile` ensures code is valid.
+- **Unit Testing:** `mvn test` runs the JUnit 5 suite.
+- **Reporting:** Jenkins captures these results using `junit '**/target/surefire-reports/*.xml'`, providing a visual breakdown of pass/fail tests in the UI.
+
+### 3. Artifact Storage (Nexus)
+- **Repository:** The built JAR is published to the `maven-releases` repository in Nexus.
+- **URL:** `http://nexus-server:8081/repository/maven-releases/com/example/jspecify-nullway-demo/`
+- **Method:** `curl` with `usernamePassword` credentials uploads the specifically versioned JAR (e.g., `jspecify-nullway-demo-1.0.45.jar`).
+
+### 4. Docker Image Construction
+- **Tagging:** Two tags are created: `jspecify-demo:${DYNAMIC_VERSION}` and `jspecify-demo:latest`.
+- **JDK:** Built against **Java 21** as specified in the `Dockerfile` and `pom.xml`.
+
+### 5. Deployment to Development (Minikube Dev)
+- **Targeting:** `kubectl config use-context dev-cluster`.
+- **Namespace:** Deployed into the `dev` namespace.
+- **Scaling:** The `deployment.yaml` specifies **2 replicas** (pods).
+- **Image Injection:** The image is "piped" directly into the cluster's internal Docker runtime:
+  `docker save ... | docker exec -i dev-cluster docker load`
+- **Instantiation:** `sed` replaces `VERSION_PLACEHOLDER` in the manifest before `kubectl apply`.
+
+### 6. Integration Testing (Dev)
+- **Process:**
+  1. Pipeline checks for port conflicts on port `8082`.
+  2. If clear, it starts a background `kubectl port-forward` to expose the Dev service.
+  3. It executes a `curl` against `http://127.0.0.1:8082/hello`.
+  4. If the HTTP response is not `200`, the pipeline fails, preventing promotion to Prod.
+
+### 7. Promotion & Production (Minikube Prod)
+- **Manual Gate:** A `Manual Approval` stage requires a user to click "Deploy to Prod" in Jenkins.
+- **Targeting:** `kubectl config use-context prod-cluster`.
+- **Namespace:** Deployed into the `prod` namespace.
+- **Final Verification:** The pipeline queries the pod status using `jsonpath='{.items[*].status.phase}'`. It only succeeds if the status is exactly `Running`.
+
+---
+
 ## Restoration Steps
 
 1.  **Host Services:**
