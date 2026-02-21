@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 800px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 0.5rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.05rem;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .loading {
+            text-align: center;
+            font-style: italic;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Team</h1>
+        <div id="loading" class="loading">Fetching team members...</div>
+        <table id="teamTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Age Group</th>
+                </tr>
+            </thead>
+            <tbody id="teamBody">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function fetchTeam() {
+            try {
+                const response = await fetch('/hello');
+                const data = await response.json();
+                
+                const tableBody = document.getElementById('teamBody');
+                const loading = document.getElementById('loading');
+                const table = document.getElementById('teamTable');
+
+                tableBody.innerHTML = '';
+                data.forEach(member => {
+                    const row = `
+                        <tr>
+                            <td>${member.id}</td>
+                            <td>${member.fullName}</td>
+                            <td>${member.email}</td>
+                            <td>${member.ageGroup}</td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+
+                loading.style.display = 'none';
+                table.style.display = 'table';
+            } catch (error) {
+                console.error('Error fetching team data:', error);
+                document.getElementById('loading').innerText = 'Failed to load team data.';
+            }
+        }
+
+        window.onload = fetchTeam;
+    </script>
+</body>
+</html>
