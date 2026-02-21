@@ -1,0 +1,50 @@
+apiVersion: v1
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush         1
+        Log_Level     info
+        Parsers_File  parsers.conf
+
+    [INPUT]
+        Name              tail
+        Tag               kube.*
+        Path              /var/log/containers/*.log
+        Parser            docker
+        Inotify_Watcher   Off
+        Mem_Buf_Limit     5MB
+
+    [FILTER]
+        Name                kubernetes
+        Match               kube.*
+        Kube_URL            https://kubernetes.default.svc:443
+        Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token
+        Merge_Log           On
+        Keep_Log            Off
+
+    [OUTPUT]
+        Name            splunk
+        Match           *
+        Host            host.minikube.internal
+        Port            8088
+        Splunk_Token    11111111-1111-1111-1111-111111111111
+        TLS             On
+        TLS.Verify      Off
+  parsers.conf: |
+    [PARSER]
+        Name        docker
+        Format      json
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep   On
+kind: ConfigMap
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","data":{"fluent-bit.conf":"[SERVICE]\n    Flush         1\n    Log_Level     info\n    Parsers_File  parsers.conf\n\n[INPUT]\n    Name              tail\n    Tag               kube.*\n    Path              /var/log/containers/*.log\n    Parser            docker\n    Inotify_Watcher   Off\n    Mem_Buf_Limit     5MB\n\n[FILTER]\n    Name                kubernetes\n    Match               kube.*\n    Kube_URL            https://kubernetes.default.svc:443\n    Kube_CA_File        /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n    Kube_Token_File     /var/run/secrets/kubernetes.io/serviceaccount/token\n    Merge_Log           On\n    Keep_Log            Off\n\n[OUTPUT]\n    Name            splunk\n    Match           *\n    Host            host.minikube.internal\n    Port            8088\n    Splunk_Token    11111111-1111-1111-1111-111111111111\n    TLS             On\n    TLS.Verify      Off\n","parsers.conf":"[PARSER]\n    Name        docker\n    Format      json\n    Time_Key    time\n    Time_Format %Y-%m-%dT%H:%M:%S.%L\n    Time_Keep   On\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"fluent-bit-config","namespace":"kube-system"}}
+  creationTimestamp: "2026-02-21T00:21:14Z"
+  name: fluent-bit-config
+  namespace: kube-system
+  resourceVersion: "939"
+  uid: 6c3380bb-1e4e-4a96-ab5c-c60c92e154e5
