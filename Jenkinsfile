@@ -76,9 +76,9 @@ pipeline {
                     sh "kubectl config use-context dev-cluster"
                     sh "kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -"
                     
-                    echo "Loading image to Minikube Dev Cluster..."
-                    // Minikube image load command
-                    sh "minikube image load jspecify-demo:${env.DYNAMIC_VERSION} -p dev-cluster"
+                    echo "Loading image to Minikube Dev Cluster via Docker Pipe..."
+                    // Using direct docker pipe to bypass Minikube SSH issues
+                    sh "docker save jspecify-demo:${env.DYNAMIC_VERSION} | docker exec -i dev-cluster docker load"
                     
                     sh "sed -i 's/VERSION_PLACEHOLDER/${env.DYNAMIC_VERSION}/g' deployment.yaml"
                     sh "kubectl apply -f deployment.yaml -n dev"
@@ -92,7 +92,6 @@ pipeline {
             steps {
                 script {
                     echo "Starting port-forward for Dev..."
-                    // Check if port 8082 is already listening
                     def portBusy = sh(script: "netstat -tuln | grep :8082 || true", returnStdout: true).trim()
                     if (!portBusy) {
                         sh "kubectl port-forward -n dev service/jspecify-demo-service 8082:8082 --address 0.0.0.0 > dev_pf.log 2>&1 &"
@@ -112,11 +111,11 @@ pipeline {
         stage('Deploy to Production') {
             steps {
                 script {
-                    echo "Deploying to Minikube Production Cluster..."
+                    echo "Deploying to Minikube Production Cluster via Docker Pipe..."
                     sh "kubectl config use-context prod-cluster"
                     sh "kubectl create namespace prod --dry-run=client -o yaml | kubectl apply -f -"
                     
-                    sh "minikube image load jspecify-demo:${env.DYNAMIC_VERSION} -p prod-cluster"
+                    sh "docker save jspecify-demo:${env.DYNAMIC_VERSION} | docker exec -i prod-cluster docker load"
                     
                     sh "kubectl apply -f deployment.yaml -n prod"
                     sh "kubectl rollout restart deployment/jspecify-demo -n prod"
