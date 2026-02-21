@@ -94,6 +94,8 @@ This directory contains a complete backup of the DevOps infrastructure state as 
 | **Portainer** | [http://portainer.hello.com](http://portainer.hello.com) | `http://127.0.0.1:9000` | Docker Container Management |
 | **Dev App** | [http://dev.hello.com](http://dev.hello.com) | `http://192.168.49.2:30265` | JSpecify App in Dev Cluster |
 | **Prod App** | [http://prod.hello.com](http://prod.hello.com) | `http://192.168.58.2:31581` | JSpecify App in Prod Cluster |
+| **Prometheus** | [http://prometheus.hello.com](http://prometheus.hello.com) | `http://127.0.0.1:9090` | Metrics Collection Server |
+| **Grafana** | [http://grafana.hello.com](http://grafana.hello.com) | `http://127.0.0.1:3000` | Observability Dashboards |
 | **Log Proxy** | -- | `http://127.0.0.1:8888` | Socat tunnel to Splunk HEC |
 
 > **Note:** The "Friendly URLs" are managed by the Nginx Reverse Proxy (`devops-proxy`) running on port 80 of your host machine.
