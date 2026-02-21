@@ -1,12 +1,11 @@
 package org.example.controller;
 
+import org.example.dto.UserRequest;
 import org.example.dto.UserResponse;
 import org.example.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -25,6 +24,12 @@ public class HelloController {
     public List<UserResponse> hello() {
         logger.info("Endpoint /hello called");
         return userService.getAllUsers();
+    }
+
+    @PostMapping("/hello")
+    public UserResponse addUser(@RequestBody UserRequest request) {
+        logger.info("Endpoint POST /hello called for user: {} {}", request.getFirstName(), request.getLastName());
+        return userService.addUser(request);
     }
 
     @GetMapping("/hello/{id}")
