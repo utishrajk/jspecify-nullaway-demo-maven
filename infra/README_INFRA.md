@@ -20,6 +20,11 @@ flowchart TB
             Portainer[Portainer UI<br/>Port 9000]
             Socat[Log Proxy<br/>Socat :8888]
         end
+
+        subgraph Observability ["Observability Stack (host-network)"]
+            Prom[Prometheus<br/>Port 9090]
+            Grafana[Grafana<br/>Port 3000]
+        end
     end
 
     subgraph K8sDev ["Minikube Dev Cluster (192.168.49.2)"]
@@ -45,10 +50,17 @@ flowchart TB
     Proxy -- "portainer.hello.com" --> Portainer
     Proxy -- "dev.hello.com" --> DevSvc
     Proxy -- "prod.hello.com" --> ProdSvc
+    Proxy -- "prometheus.hello.com" --> Prom
+    Proxy -- "grafana.hello.com" --> Grafana
 
     %% Service -> Target Flow
     DevSvc --> DevApp
     ProdSvc --> ProdApp
+
+    %% Metrics Flow
+    Prom -- "Scrape /actuator/prometheus" --> DevSvc
+    Prom -- "Scrape /actuator/prometheus" --> ProdSvc
+    Grafana -- "Query API" --> Prom
 
     %% Log Forwarding Flow
     DevApp -- "Container Logs" --> DevFB
