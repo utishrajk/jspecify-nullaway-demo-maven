@@ -83,6 +83,35 @@ This directory contains a complete backup of the DevOps infrastructure state as 
     *   `token.txt`: The specific HEC token used by Fluent Bit.
 *   `setup_hosts.sh`: Script to add local DNS aliases to `/etc/hosts`.
 
+## Build & Deployment Lifecycle
+
+### 1. Application Build (Maven)
+- **JDK Match:** The project is configured for **Java 21**.
+- **Command:** `mvn clean package`
+- **Output:** A fat JAR located at `target/jspecify-nullway-demo-*.jar`.
+
+### 2. Image Creation (Docker)
+- **Base Image:** `eclipse-temurin:21-jre-alpine` (Matches the application's Java 21 requirement).
+- **Process:** The `Dockerfile` copies the compiled JAR into the `/app` directory inside the container as `app.jar`.
+- **Command:** `docker build -t jspecify-demo:latest .`
+
+### 3. Minikube Image Loading (The "Docker Pipe")
+Because Minikube runs in its own Docker-in-Docker (or KIC) container, it cannot see host images directly. We use a high-speed pipe to transfer the image:
+```bash
+docker save jspecify-demo:latest | docker exec -i dev-cluster docker load
+```
+This bypasses the need for a private registry or slow SSH transfers.
+
+### 4. Pod Creation (Kubernetes)
+- **Manifest:** `deployment.yaml` (Source) or `infra/k8s/` (Backup).
+- **Pull Policy:** Set to `imagePullPolicy: Never`. This forces Kubernetes to use the image we manually loaded into the node rather than trying to pull it from a remote registry.
+- **Instantiation:** 
+  ```bash
+  kubectl apply -f deployment.yaml -n dev
+  ```
+
+---
+
 ## Restoration Steps
 
 1.  **Host Services:**
