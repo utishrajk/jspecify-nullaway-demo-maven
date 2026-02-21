@@ -1,5 +1,72 @@
 # Infrastructure Backup & Restore Guide
 
+## System Architecture
+
+```mermaid
+flowchart TB
+    subgraph UserSpace ["User Access Layer"]
+        User([User Browser])
+        Hosts["/etc/hosts Aliases<br/>(nexus.hello.com, etc.)"]
+    end
+
+    subgraph Host ["Local Laptop (Docker Engine)"]
+        direction TB
+        Proxy[Nginx Reverse Proxy<br/>'devops-proxy' @ Port 80]
+        
+        subgraph DevOpsTools ["Core Services (devops-net bridge)"]
+            Jenkins[Jenkins Server<br/>Port 8080]
+            Nexus[Nexus Repo<br/>Port 8081]
+            Splunk[Splunk Enterprise<br/>Port 8000/8088]
+            Portainer[Portainer UI<br/>Port 9000]
+            Socat[Log Proxy<br/>Socat :8888]
+        end
+    end
+
+    subgraph K8sDev ["Minikube Dev Cluster (192.168.49.2)"]
+        direction LR
+        DevApp[jspecify-demo-app<br/>:8083]
+        DevSvc[NodePort Service<br/>:30265]
+        DevFB[Fluent Bit<br/>Log Forwarder]
+    end
+
+    subgraph K8sProd ["Minikube Prod Cluster (192.168.58.2)"]
+        direction LR
+        ProdApp[jspecify-demo-app<br/>:8083]
+        ProdSvc[NodePort Service<br/>:31581]
+        ProdFB[Fluent Bit<br/>Log Forwarder]
+    end
+
+    %% Routing Flow
+    User --> Hosts
+    Hosts --> Proxy
+    Proxy -- "nexus.hello.com" --> Nexus
+    Proxy -- "jenkins.hello.com" --> Jenkins
+    Proxy -- "splunk.hello.com" --> Splunk
+    Proxy -- "portainer.hello.com" --> Portainer
+    Proxy -- "dev.hello.com" --> DevSvc
+    Proxy -- "prod.hello.com" --> ProdSvc
+
+    %% Service -> Target Flow
+    DevSvc --> DevApp
+    ProdSvc --> ProdApp
+
+    %% Log Forwarding Flow
+    DevApp -- "Container Logs" --> DevFB
+    ProdApp -- "Container Logs" --> ProdFB
+    DevFB -- "HEC (HTTPS :8088)<br/>via 192.168.49.1" --> Splunk
+    ProdFB -- "HEC (HTTPS :8088)<br/>via host.minikube.internal" --> Splunk
+
+    %% Jenkins Automation
+    Jenkins -- "Build & Push" --> Nexus
+    Jenkins -- "kubectl apply" --> K8sDev
+    Jenkins -- "kubectl apply" --> K8sProd
+
+    style User fill:#f9f,stroke:#333,stroke-width:2px
+    style Proxy fill:#69f,stroke:#333,stroke-width:2px
+    style Splunk fill:#f66,stroke:#333,stroke-width:2px
+    style Jenkins fill:#fa0,stroke:#333,stroke-width:2px
+```
+
 This directory contains a complete backup of the DevOps infrastructure state as of the "first stable state" commit.
 
 ## Structure
