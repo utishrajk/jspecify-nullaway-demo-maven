@@ -15,7 +15,7 @@
             align-items: center;
             min-height: 100vh;
         }
-        .container {
+        .container, .form-container {
             background: white;
             padding: 2rem;
             border-radius: 12px;
@@ -56,14 +56,6 @@
             font-style: italic;
             color: #7f8c8d;
         }
-        .form-container {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            width: 90%;
-            max-width: 800px;
-        }
         .form-group {
             margin-bottom: 1rem;
         }
@@ -89,10 +81,19 @@
             cursor: pointer;
             font-size: 1rem;
             width: 100%;
+            transition: background 0.3s;
         }
         .btn:hover {
             background-color: #2980b9;
         }
+        .status-msg {
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        .success { color: #27ae60; }
+        .error { color: #e74c3c; }
     </style>
 </head>
 <body>
@@ -101,21 +102,22 @@
         <form id="addMemberForm">
             <div class="form-group">
                 <label for="firstName">First Name</label>
-                <input type="text" id="firstName" required>
+                <input type="text" id="firstName" required placeholder="e.g. John">
             </div>
             <div class="form-group">
                 <label for="lastName">Last Name</label>
-                <input type="text" id="lastName" required>
+                <input type="text" id="lastName" required placeholder="e.g. Doe">
             </div>
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" required>
+                <input type="email" id="email" required placeholder="e.g. john.doe@example.com">
             </div>
             <div class="form-group">
                 <label for="age">Age</label>
-                <input type="number" id="age" required>
+                <input type="number" id="age" required min="1" max="120">
             </div>
-            <button type="submit" class="btn">Add Member</button>
+            <button type="submit" class="btn" id="submitBtn">Add Member</button>
+            <div id="statusMsg" class="status-msg"></div>
         </form>
     </div>
 
@@ -137,15 +139,34 @@
     </div>
 
     <script>
+        const tableBody = document.getElementById('teamBody');
+        const loading = document.getElementById('loading');
+        const table = document.getElementById('teamTable');
+        const statusMsg = document.getElementById('statusMsg');
+
+        function appendToTable(member) {
+            const row = `
+                <tr id="member-${member.id}" style="background-color: #e8f8f5;">
+                    <td>${member.id}</td>
+                    <td>${member.fullName}</td>
+                    <td>${member.email}</td>
+                    <td>${member.ageGroup}</td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML('beforeend', row);
+            
+            // Fade out the highlight after 2 seconds
+            setTimeout(() => {
+                const newRow = document.getElementById(`member-${member.id}`);
+                if (newRow) newRow.style.backgroundColor = 'transparent';
+            }, 2000);
+        }
+
         async function fetchTeam() {
             try {
                 const response = await fetch('/hello');
                 const data = await response.json();
                 
-                const tableBody = document.getElementById('teamBody');
-                const loading = document.getElementById('loading');
-                const table = document.getElementById('teamTable');
-
                 tableBody.innerHTML = '';
                 data.forEach(member => {
                     const row = `
@@ -163,13 +184,17 @@
                 table.style.display = 'table';
             } catch (error) {
                 console.error('Error fetching team data:', error);
-                document.getElementById('loading').innerText = 'Failed to load team data.';
+                loading.innerText = 'Failed to load team data.';
             }
         }
 
         document.getElementById('addMemberForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const member = {
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerText = 'Adding...';
+
+            const memberRequest = {
                 firstName: document.getElementById('firstName').value,
                 lastName: document.getElementById('lastName').value,
                 email: document.getElementById('email').value,
@@ -179,21 +204,33 @@
             try {
                 const response = await fetch('/hello', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(member)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(memberRequest)
                 });
 
                 if (response.ok) {
+                    const newMember = await response.json();
                     document.getElementById('addMemberForm').reset();
-                    fetchTeam();
+                    
+                    // Show success
+                    statusMsg.innerText = 'Member added successfully!';
+                    statusMsg.className = 'status-msg success';
+                    statusMsg.style.display = 'block';
+
+                    // Update UI immediately
+                    appendToTable(newMember);
+                    
+                    setTimeout(() => { statusMsg.style.display = 'none'; }, 3000);
                 } else {
-                    alert('Failed to add member');
+                    throw new Error('Server error');
                 }
             } catch (error) {
-                console.error('Error adding member:', error);
-                alert('Error adding member');
+                statusMsg.innerText = 'Failed to add member.';
+                statusMsg.className = 'status-msg error';
+                statusMsg.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Add Member';
             }
         });
 
