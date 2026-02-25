@@ -15,6 +15,15 @@
             align-items: center;
             min-height: 100vh;
         }
+        .header-image {
+            width: 100%;
+            max-width: 800px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
         .container, .form-container {
             background: white;
             padding: 2rem;
@@ -97,6 +106,8 @@
     </style>
 </head>
 <body>
+    <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80" alt="Team Collaboration" class="header-image">
+
     <div class="form-container">
         <h1>Add Team Member</h1>
         <form id="addMemberForm">
@@ -155,7 +166,6 @@
             `;
             tableBody.insertAdjacentHTML('beforeend', row);
             
-            // Fade out the highlight after 2 seconds
             setTimeout(() => {
                 const newRow = document.getElementById(`member-${member.id}`);
                 if (newRow) newRow.style.backgroundColor = 'transparent';
@@ -212,12 +222,10 @@
                     const newMember = await response.json();
                     document.getElementById('addMemberForm').reset();
                     
-                    // Show success
                     statusMsg.innerText = 'Member added successfully!';
                     statusMsg.className = 'status-msg success';
                     statusMsg.style.display = 'block';
 
-                    // Update UI immediately
                     appendToTable(newMember);
                     
                     setTimeout(() => { statusMsg.style.display = 'none'; }, 3000);
