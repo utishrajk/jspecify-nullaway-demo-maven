@@ -95,6 +95,18 @@
         .btn:hover {
             background-color: #2980b9;
         }
+        .update-btn {
+            background-color: #2ecc71;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .update-btn:hover {
+            background-color: #27ae60;
+        }
         .status-msg {
             margin-top: 10px;
             text-align: center;
@@ -127,6 +139,10 @@
                 <label for="age">Age</label>
                 <input type="number" id="age" required min="1" max="120">
             </div>
+            <div class="form-group">
+                <label for="salary">Salary</label>
+                <input type="number" id="salary" required min="0" step="0.01" placeholder="e.g. 50000">
+            </div>
             <button type="submit" class="btn" id="submitBtn">Add Member</button>
             <div id="statusMsg" class="status-msg"></div>
         </form>
@@ -142,6 +158,8 @@
                     <th>Full Name</th>
                     <th>Email</th>
                     <th>Age Group</th>
+                    <th>Salary</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody id="teamBody">
@@ -155,21 +173,43 @@
         const table = document.getElementById('teamTable');
         const statusMsg = document.getElementById('statusMsg');
 
-        function appendToTable(member) {
-            const row = `
-                <tr id="member-${member.id}" style="background-color: #e8f8f5;">
+        function createRow(member) {
+            return `
+                <tr id="member-${member.id}">
                     <td>${member.id}</td>
                     <td>${member.fullName}</td>
                     <td>${member.email}</td>
                     <td>${member.ageGroup}</td>
+                    <td id="salary-${member.id}">$${member.salary.toLocaleString()}</td>
+                    <td>
+                        <button class="update-btn" onclick="updateSalary(${member.id})">Update Salary</button>
+                    </td>
                 </tr>
             `;
-            tableBody.insertAdjacentHTML('beforeend', row);
-            
-            setTimeout(() => {
-                const newRow = document.getElementById(`member-${member.id}`);
-                if (newRow) newRow.style.backgroundColor = 'transparent';
-            }, 2000);
+        }
+
+        async function updateSalary(id) {
+            const newSalary = prompt("Enter new salary:");
+            if (newSalary === null || newSalary === "" || isNaN(newSalary)) return;
+
+            try {
+                const response = await fetch(`/hello/${id}/salary?salary=${newSalary}`, {
+                    method: 'PATCH'
+                });
+
+                if (response.ok) {
+                    const updatedUser = await response.json();
+                    document.getElementById(`salary-${id}`).innerText = `$${updatedUser.salary.toLocaleString()}`;
+                    const row = document.getElementById(`member-${id}`);
+                    row.style.backgroundColor = '#e8f8f5';
+                    setTimeout(() => { row.style.backgroundColor = 'transparent'; }, 2000);
+                } else {
+                    alert('Failed to update salary');
+                }
+            } catch (error) {
+                console.error('Error updating salary:', error);
+                alert('Error updating salary');
+            }
         }
 
         async function fetchTeam() {
@@ -179,15 +219,7 @@
                 
                 tableBody.innerHTML = '';
                 data.forEach(member => {
-                    const row = `
-                        <tr>
-                            <td>${member.id}</td>
-                            <td>${member.fullName}</td>
-                            <td>${member.email}</td>
-                            <td>${member.ageGroup}</td>
-                        </tr>
-                    `;
-                    tableBody.innerHTML += row;
+                    tableBody.insertAdjacentHTML('beforeend', createRow(member));
                 });
 
                 loading.style.display = 'none';
@@ -208,7 +240,8 @@
                 firstName: document.getElementById('firstName').value,
                 lastName: document.getElementById('lastName').value,
                 email: document.getElementById('email').value,
-                age: parseInt(document.getElementById('age').value)
+                age: parseInt(document.getElementById('age').value),
+                salary: parseFloat(document.getElementById('salary').value)
             };
 
             try {
@@ -226,7 +259,10 @@
                     statusMsg.className = 'status-msg success';
                     statusMsg.style.display = 'block';
 
-                    appendToTable(newMember);
+                    tableBody.insertAdjacentHTML('beforeend', createRow(newMember));
+                    const newRow = document.getElementById(`member-${newMember.id}`);
+                    newRow.style.backgroundColor = '#e8f8f5';
+                    setTimeout(() => { newRow.style.backgroundColor = 'transparent'; }, 2000);
                     
                     setTimeout(() => { statusMsg.style.display = 'none'; }, 3000);
                 } else {

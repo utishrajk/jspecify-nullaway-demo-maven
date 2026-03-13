@@ -32,6 +32,12 @@ public class HelloController {
         return userService.addUser(request);
     }
 
+    @PatchMapping("/hello/{id}/salary")
+    public UserResponse updateSalary(@PathVariable Long id, @RequestParam double salary) {
+        logger.info("Endpoint PATCH /hello/{}/salary called with salary: {}", id, salary);
+        return userService.updateSalary(id, salary);
+    }
+
     @GetMapping("/hello/{id}")
     public UserResponse helloUser(@PathVariable Long id) {
         logger.info("Endpoint /hello/{} called", id);

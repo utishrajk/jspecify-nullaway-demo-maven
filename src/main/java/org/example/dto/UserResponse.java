@@ -5,15 +5,17 @@ public class UserResponse {
     private String fullName;
     private String email;
     private String ageGroup;
+    private double salary;
 
     public UserResponse() {
     }
 
-    public UserResponse(Long id, String fullName, String email, String ageGroup) {
+    public UserResponse(Long id, String fullName, String email, String ageGroup, double salary) {
         this.id = id;
         this.fullName = fullName;
         this.email = email;
         this.ageGroup = ageGroup;
+        this.salary = salary;
     }
 
     public Long getId() {
@@ -46,5 +48,13 @@ public class UserResponse {
 
     public void setAgeGroup(String ageGroup) {
         this.ageGroup = ageGroup;
+    }
+
+    public double getSalary() {
+        return salary;
+    }
+
+    public void setSalary(double salary) {
+        this.salary = salary;
     }
 }

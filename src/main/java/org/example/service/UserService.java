@@ -14,10 +14,10 @@ import java.util.concurrent.atomic.AtomicLong;
 public class UserService {
 
     private final List<User> users = new ArrayList<>(List.of(
-        new User(1L, "John", "Doe", "john.doe@example.com", 25),
-        new User(2L, "Jane", "Smith", "jane.smith@example.com", 17),
-        new User(3L, "Bob", "Johnson", "bob.johnson@example.com", 70),
-        new User(4L, "Alice", "Brown", "alice.brown@example.com", 35)
+        new User(1L, "John", "Doe", "john.doe@example.com", 25, 50000.0),
+        new User(2L, "Jane", "Smith", "jane.smith@example.com", 17, 45000.0),
+        new User(3L, "Bob", "Johnson", "bob.johnson@example.com", 70, 60000.0),
+        new User(4L, "Alice", "Brown", "alice.brown@example.com", 35, 55000.0)
     ));
 
     private final AtomicLong counter = new AtomicLong(5);
@@ -34,10 +34,20 @@ public class UserService {
             request.getFirstName(),
             request.getLastName(),
             request.getEmail(),
-            request.getAge()
+            request.getAge(),
+            request.getSalary()
         );
         users.add(newUser);
         return UserMapper.INSTANCE.userToUserResponse(newUser);
+    }
+
+    public UserResponse updateSalary(Long id, double newSalary) {
+        User user = users.stream()
+                .filter(u -> u.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setSalary(newSalary);
+        return UserMapper.INSTANCE.userToUserResponse(user);
     }
 
     public UserResponse getUserById(Long id) {

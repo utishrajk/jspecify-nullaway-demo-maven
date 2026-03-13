@@ -1,20 +1,20 @@
 package org.example.dto;
 
-import org.jspecify.annotations.Nullable;
-
 public class UserRequest {
     private String firstName;
     private String lastName;
     private String email;
     private int age;
+    private double salary;
 
     public UserRequest() {}
 
-    public UserRequest(String firstName, String lastName, String email, int age) {
+    public UserRequest(String firstName, String lastName, String email, int age, double salary) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.age = age;
+        this.salary = salary;
     }
 
     public String getFirstName() {
@@ -47,5 +47,13 @@ public class UserRequest {
 
     public void setAge(int age) {
         this.age = age;
+    }
+
+    public double getSalary() {
+        return salary;
+    }
+
+    public void setSalary(double salary) {
+        this.salary = salary;
     }
 }
