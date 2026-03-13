@@ -32,13 +32,14 @@ public class MyIntegrationIT {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(4)))
                 .andExpect(jsonPath("$[0].fullName").value("John Doe"))
-                .andExpect(jsonPath("$[0].salary").value(50000.0));
+                .andExpect(jsonPath("$[0].salary").value(50000.0))
+                .andExpect(jsonPath("$[0].address").value("123 Main St"));
     }
 
     @Test
     @DirtiesContext
     void shouldAddUser() throws Exception {
-        UserRequest request = new UserRequest("Michael", "Jordan", "mj@example.com", 23, 100000.0);
+        UserRequest request = new UserRequest("Michael", "Jordan", "mj@example.com", 23, 100000.0, "Chicago");
 
         mockMvc.perform(post("/hello")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -46,13 +47,15 @@ public class MyIntegrationIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fullName").value("Michael Jordan"))
                 .andExpect(jsonPath("$.email").value("mj@example.com"))
-                .andExpect(jsonPath("$.salary").value(100000.0));
+                .andExpect(jsonPath("$.salary").value(100000.0))
+                .andExpect(jsonPath("$.address").value("Chicago"));
 
         // Verify it was actually added
         mockMvc.perform(get("/hello"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(5)))
                 .andExpect(jsonPath("$[4].fullName").value("Michael Jordan"))
-                .andExpect(jsonPath("$[4].salary").value(100000.0));
+                .andExpect(jsonPath("$[4].salary").value(100000.0))
+                .andExpect(jsonPath("$[4].address").value("Chicago"));
     }
 }

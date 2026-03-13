@@ -14,10 +14,10 @@ import java.util.concurrent.atomic.AtomicLong;
 public class UserService {
 
     private final List<User> users = new ArrayList<>(List.of(
-        new User(1L, "John", "Doe", "john.doe@example.com", 25, 50000.0),
-        new User(2L, "Jane", "Smith", "jane.smith@example.com", 17, 45000.0),
-        new User(3L, "Bob", "Johnson", "bob.johnson@example.com", 70, 60000.0),
-        new User(4L, "Alice", "Brown", "alice.brown@example.com", 35, 55000.0)
+        new User(1L, "John", "Doe", "john.doe@example.com", 25, 50000.0, "123 Main St"),
+        new User(2L, "Jane", "Smith", "jane.smith@example.com", 17, 45000.0, "456 Oak Ave"),
+        new User(3L, "Bob", "Johnson", "bob.johnson@example.com", 70, 60000.0, "789 Pine Rd"),
+        new User(4L, "Alice", "Brown", "alice.brown@example.com", 35, 55000.0, "321 Elm St")
     ));
 
     private final AtomicLong counter = new AtomicLong(5);
@@ -35,7 +35,8 @@ public class UserService {
             request.getLastName(),
             request.getEmail(),
             request.getAge(),
-            request.getSalary()
+            request.getSalary(),
+            request.getAddress()
         );
         users.add(newUser);
         return UserMapper.INSTANCE.userToUserResponse(newUser);

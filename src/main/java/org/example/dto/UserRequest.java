@@ -6,15 +6,17 @@ public class UserRequest {
     private String email;
     private int age;
     private double salary;
+    private String address;
 
     public UserRequest() {}
 
-    public UserRequest(String firstName, String lastName, String email, int age, double salary) {
+    public UserRequest(String firstName, String lastName, String email, int age, double salary, String address) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.age = age;
         this.salary = salary;
+        this.address = address;
     }
 
     public String getFirstName() {
@@ -55,5 +57,13 @@ public class UserRequest {
 
     public void setSalary(double salary) {
         this.salary = salary;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 }

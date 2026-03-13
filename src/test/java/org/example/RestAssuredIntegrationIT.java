@@ -34,13 +34,14 @@ public class RestAssuredIntegrationIT {
                 .statusCode(200)
                 .body("$", hasSize(4))
                 .body("[0].fullName", equalTo("John Doe"))
-                .body("[0].salary", equalTo(50000.0f));
+                .body("[0].salary", equalTo(50000.0f))
+                .body("[0].address", equalTo("123 Main St"));
     }
 
     @Test
     @DirtiesContext
     void shouldAddUser() {
-        UserRequest request = new UserRequest("Michael", "Jordan", "mj@example.com", 23, 100000.0);
+        UserRequest request = new UserRequest("Michael", "Jordan", "mj@example.com", 23, 100000.0, "Chicago");
 
         given()
                 .contentType(ContentType.JSON)
@@ -51,7 +52,8 @@ public class RestAssuredIntegrationIT {
                 .statusCode(200)
                 .body("fullName", equalTo("Michael Jordan"))
                 .body("email", equalTo("mj@example.com"))
-                .body("salary", equalTo(100000.0f));
+                .body("salary", equalTo(100000.0f))
+                .body("address", equalTo("Chicago"));
 
         // Verify it was actually added
         given()
@@ -62,6 +64,7 @@ public class RestAssuredIntegrationIT {
                 .statusCode(200)
                 .body("$", hasSize(5))
                 .body("[4].fullName", equalTo("Michael Jordan"))
-                .body("[4].salary", equalTo(100000.0f));
+                .body("[4].salary", equalTo(100000.0f))
+                .body("[4].address", equalTo("Chicago"));
     }
 }
