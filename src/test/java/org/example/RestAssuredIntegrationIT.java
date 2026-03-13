@@ -33,7 +33,8 @@ public class RestAssuredIntegrationIT {
         .then()
                 .statusCode(200)
                 .body("$", hasSize(4))
-                .body("[0].fullName", equalTo("John Doe"));
+                .body("[0].fullName", equalTo("John Doe"))
+                .body("[0].salary", equalTo(50000.0f));
     }
 
     @Test
@@ -49,7 +50,8 @@ public class RestAssuredIntegrationIT {
         .then()
                 .statusCode(200)
                 .body("fullName", equalTo("Michael Jordan"))
-                .body("email", equalTo("mj@example.com"));
+                .body("email", equalTo("mj@example.com"))
+                .body("salary", equalTo(100000.0f));
 
         // Verify it was actually added
         given()
@@ -59,6 +61,7 @@ public class RestAssuredIntegrationIT {
         .then()
                 .statusCode(200)
                 .body("$", hasSize(5))
-                .body("[4].fullName", equalTo("Michael Jordan"));
+                .body("[4].fullName", equalTo("Michael Jordan"))
+                .body("[4].salary", equalTo(100000.0f));
     }
 }

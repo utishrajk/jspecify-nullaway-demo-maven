@@ -31,7 +31,8 @@ public class MyIntegrationIT {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(4)))
-                .andExpect(jsonPath("$[0].fullName").value("John Doe"));
+                .andExpect(jsonPath("$[0].fullName").value("John Doe"))
+                .andExpect(jsonPath("$[0].salary").value(50000.0));
     }
 
     @Test
@@ -44,12 +45,14 @@ public class MyIntegrationIT {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fullName").value("Michael Jordan"))
-                .andExpect(jsonPath("$.email").value("mj@example.com"));
+                .andExpect(jsonPath("$.email").value("mj@example.com"))
+                .andExpect(jsonPath("$.salary").value(100000.0));
 
         // Verify it was actually added
         mockMvc.perform(get("/hello"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(5)))
-                .andExpect(jsonPath("$[4].fullName").value("Michael Jordan"));
+                .andExpect(jsonPath("$[4].fullName").value("Michael Jordan"))
+                .andExpect(jsonPath("$[4].salary").value(100000.0));
     }
 }
