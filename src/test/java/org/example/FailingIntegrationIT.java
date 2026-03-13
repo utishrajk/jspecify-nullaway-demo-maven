@@ -19,10 +19,10 @@ public class FailingIntegrationIT {
     private MockMvc mockMvc;
 
     @Test
-    void thisTestShouldFail() throws Exception {
-        // We know there are only 4 users initially, but we are asserting for 100.
+    void thisTestShouldPass() throws Exception {
+        // Correcting the expectation: initial team list has 4 members.
         mockMvc.perform(get("/hello"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(100)));
+                .andExpect(jsonPath("$", hasSize(4)));
     }
 }
