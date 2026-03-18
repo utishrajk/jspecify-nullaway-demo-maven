@@ -143,6 +143,10 @@
                 <label for="salary">Salary</label>
                 <input type="number" id="salary" required min="0" step="0.01" placeholder="e.g. 50000">
             </div>
+            <div class="form-group">
+                <label for="address">Address</label>
+                <input type="text" id="address" required placeholder="e.g. 123 Main St">
+            </div>
             <button type="submit" class="btn" id="submitBtn">Add Member</button>
             <div id="statusMsg" class="status-msg"></div>
         </form>
@@ -159,6 +163,7 @@
                     <th>Email</th>
                     <th>Age Group</th>
                     <th>Salary</th>
+                    <th>Address</th>
                     <th>Action</th>
                 </tr>
             </thead>
@@ -181,6 +186,7 @@
                     <td>${member.email}</td>
                     <td>${member.ageGroup}</td>
                     <td id="salary-${member.id}">$${member.salary.toLocaleString()}</td>
+                    <td>${member.address}</td>
                     <td>
                         <button class="update-btn" onclick="updateSalary(${member.id})">Update Salary</button>
                     </td>
@@ -241,7 +247,8 @@
                 lastName: document.getElementById('lastName').value,
                 email: document.getElementById('email').value,
                 age: parseInt(document.getElementById('age').value),
-                salary: parseFloat(document.getElementById('salary').value)
+                salary: parseFloat(document.getElementById('salary').value),
+                address: document.getElementById('address').value
             };
 
             try {
