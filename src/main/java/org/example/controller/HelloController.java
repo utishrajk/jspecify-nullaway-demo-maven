@@ -1,7 +1,9 @@
 package org.example.controller;
 
+import org.example.dto.BookResponse;
 import org.example.dto.UserRequest;
 import org.example.dto.UserResponse;
+import org.example.service.BookService;
 import org.example.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,15 +17,26 @@ public class HelloController {
     private static final Logger logger = LoggerFactory.getLogger(HelloController.class);
 
     private final UserService userService;
+    private final BookService bookService;
 
-    public HelloController(UserService userService) {
+    public HelloController(UserService userService, BookService bookService) {
         this.userService = userService;
+        this.bookService = bookService;
     }
 
     @GetMapping("/hello")
     public List<UserResponse> hello() {
         logger.info("Endpoint /hello called");
         return userService.getAllUsers();
+    }
+
+    @GetMapping("/books")
+    public List<BookResponse> getBooks(@RequestParam(required = false) String category) {
+        logger.info("Endpoint /books called with category: {}", category);
+        if (category != null) {
+            return bookService.getBooksByCategory(category);
+        }
+        return bookService.getAllBooks();
     }
 
     @PostMapping("/hello")
